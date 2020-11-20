@@ -20,7 +20,9 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.withNullability
 import kotlin.reflect.jvm.reflect
 
-abstract class ConfigurableArbitrater(protected var settings: GeneratorSettings = GeneratorSettings(), generators: MutableMap<KType, () -> Any>  = mutableMapOf()) {
+abstract class ConfigurableArbitrater(protected var settings: GeneratorSettings = GeneratorSettings(),
+                                      generators: MutableMap<KType, () -> Any> = mutableMapOf()) {
+
     private val _generators: MutableMap<KType, () -> Any> = generators
 
     /**
@@ -32,6 +34,11 @@ abstract class ConfigurableArbitrater(protected var settings: GeneratorSettings 
     /**
      * Register a custom type generator. Only one generator can be registered for a given type. Registering a type again will replace the previous generator.
      */
+
+    fun addAllIfMissing(map: Map<KType, () -> Any>) {
+        map.forEach { _generators.putIfAbsent(it.key, it.value) }
+    }
+
     fun registerGenerator(generator: () -> Any) {
         // Removing nullability so generators registered by passing in Java methods (with a platform type) will match up against a non-nullable Kotlin parameter declaration
         val returnType = generator.reflect()!!.returnType.withNullability(false)
