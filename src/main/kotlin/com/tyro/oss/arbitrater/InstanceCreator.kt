@@ -19,7 +19,10 @@ package com.tyro.oss.arbitrater
 import com.tyro.oss.randomdata.RandomEnum
 import io.github.classgraph.ClassGraph
 import kotlin.reflect.*
-import kotlin.reflect.full.*
+import kotlin.reflect.full.createType
+import kotlin.reflect.full.isSubtypeOf
+import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.full.withNullability
 import kotlin.reflect.jvm.isAccessible
 
 // TODO: Arrays?
@@ -66,9 +69,10 @@ class InstanceCreator<out T: Any>(private val targetClass: KClass<T>, settings: 
 
         try {
             return when {
-                targetClass.isAbstract             -> targetClass.getRandomSubclass().createInstanceWithGenerator() as T
-                targetClass.objectInstance != null ->  targetClass.objectInstance!!
-                else                               -> {
+                targetClass.isAbstract || targetClass.isSealed -> targetClass.getRandomSubclass()
+                        .createInstanceWithGenerator() as T
+                targetClass.objectInstance != null             -> targetClass.objectInstance!!
+                else                                           -> {
                     validateConstructor()
                     val primaryConstructor = targetClass.primaryConstructor!!
 
@@ -90,10 +94,8 @@ class InstanceCreator<out T: Any>(private val targetClass: KClass<T>, settings: 
 
     private fun createValue(it: KParameter): Any? {
         return when {
-            specificValues.containsKey(it)        -> specificValues[it]
-            targetClass.isSubclassOf(Pair::class) ->
-                println("")
-            else                                  -> it.type.randomValue()
+            specificValues.containsKey(it) -> specificValues[it]
+            else                           -> it.type.randomValue()
         }
     }
 
@@ -127,7 +129,8 @@ class InstanceCreator<out T: Any>(private val targetClass: KClass<T>, settings: 
             isSubtypeOf(wildcardNullableEnumType)       -> RandomEnum.randomEnumValue(
                     (classifier as KClass<Enum<*>>).java)
 
-            classifier.isSealedClass()                  -> (this.classifier as KClass<*>).getRandomSubclass().createInstanceWithGenerator()
+            classifier.isSealedClass()                  -> (this.classifier as KClass<*>).getRandomSubclass()
+                    .createInstanceWithGenerator()
             classifier is KClass<*> && (classifier as KClass<*>).qualifiedName == "kotlin.Pair"
                                                         -> arguments[0].type!!.randomValue() to arguments[1].type!!.randomValue()
             classifier is KClass<*>                     -> (classifier as KClass<*>).createInstanceWithGenerator()

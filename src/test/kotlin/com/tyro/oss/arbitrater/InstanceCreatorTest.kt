@@ -198,6 +198,18 @@ class InstanceCreatorTest {
         val instance = ClassWithoutConstructorProperty::class.arbitrater().withValue("name", "Boy").createInstance()
         instance.bigName shouldBe "Big Boy"
     }
+
+    @Test
+    fun `can create sealed class`() {
+        val instance = SealedTest::class.arbitrater().createInstance()
+        println(instance)
+    }
+
+
+}
+
+sealed class SealedTest() {
+    data class b(val a : String) : SealedTest()
 }
 
 class TestClass(val property1: String?, val property2: String)
